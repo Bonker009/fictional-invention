@@ -1,10 +1,16 @@
 import { CalendarDate } from '../../domain/entities/CalendarDate';
-import { KhmerCalendarService, FormattedDate } from '../../domain/services/KhmerCalendarService';
+import { KhmerCalendarService } from '../../domain/services/KhmerCalendarService';
 import { KhmerLunarCalendarService, KhmerLunarDate } from '../../domain/services/KhmerLunarCalendarService';
 import { IHolidayRepository } from '../../domain/interfaces/IHolidayRepository';
 import { Holiday } from '../../domain/entities/Holiday';
 
-export interface CurrentDateResult extends FormattedDate {
+export interface CurrentDateResult {
+  gregorian: {
+    year: number;
+    month: number;
+    day: number;
+    dayName: string;
+  };
   holidays: Holiday[] | null;
   isHoliday: boolean;
   lunarDate: KhmerLunarDate;
@@ -29,7 +35,7 @@ export class GetCurrentDateUseCase {
     const lunarDate = KhmerLunarCalendarService.getKhmerLunarDate(now);
 
     return {
-      ...formattedDate,
+      gregorian: formattedDate.gregorian,
       holidays: holidays.length > 0 ? holidays : null,
       isHoliday: holidays.length > 0,
       lunarDate,

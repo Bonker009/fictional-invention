@@ -86,7 +86,7 @@ export const createHolidayRoutes = (controller: HolidayController): Router => {
    *           type: integer
    *           minimum: 1
    *           maximum: 100
-   *         description: Number of holidays to return (default: 10)
+   *         description: Number of holidays to return (defaults to 10)
    *     responses:
    *       200:
    *         description: List of upcoming holidays

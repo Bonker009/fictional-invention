@@ -48,7 +48,11 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3002
-      - DATABASE_URL=postgresql://khmer_user:khmer_password@postgres:5432/khmer_calendar?schema=public
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=khmer_calendar
+      - DB_USER=khmer_user
+      - DB_PASSWORD=khmer_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - CACHE_TTL=3600

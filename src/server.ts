@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { createApp } from './infrastructure/app';
 import { logger } from './infrastructure/logging/logger';
-import { getPrismaClient, disconnectPrisma } from './infrastructure/database/prisma';
+import { testConnection, closePool } from './infrastructure/database/pool';
 
 const PORT = process.env.PORT || 3002;
 
@@ -9,7 +9,10 @@ async function startServer() {
   try {
     // Test database connection
     logger.info('Testing database connection...');
-    await getPrismaClient().$connect();
+    const connected = await testConnection();
+    if (!connected) {
+      throw new Error('Failed to connect to database');
+    }
     logger.info('Database connected successfully');
 
     // Create and start Express app
@@ -21,7 +24,7 @@ async function startServer() {
       logger.info(`📊 GraphQL: http://localhost:${PORT}/graphql`);
       logger.info(`📖 API Documentation: http://localhost:${PORT}/api-docs`);
       logger.info(`🏗️  Architecture: Clean Architecture with TypeScript`);
-      logger.info(`💾 Database: PostgreSQL with Prisma ORM`);
+      logger.info(`💾 Database: PostgreSQL with node-postgres`);
       logger.info(`⚡ Cache: Redis ${process.env.ENABLE_CACHE === 'true' ? 'enabled' : 'disabled'}`);
       logger.info(`🔒 Security: Helmet + Rate Limiting enabled`);
       logger.info(`📦 Compression: Enabled`);
@@ -36,7 +39,7 @@ async function startServer() {
         logger.info('HTTP server closed');
         
         try {
-          await disconnectPrisma();
+          await closePool();
           logger.info('Database connection closed');
           process.exit(0);
         } catch (error) {

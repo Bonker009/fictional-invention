@@ -1,11 +1,10 @@
 import { IHolidayRepository } from '../../domain/interfaces/IHolidayRepository';
 import { Holiday } from '../../domain/entities/Holiday';
-import { getPrismaClient } from '../database/prisma';
+import { pool } from '../database/pool';
 import { RedisCache } from '../cache/RedisCache';
 import { logger } from '../logging/logger';
 
-export class PrismaHolidayRepository implements IHolidayRepository {
-  private prisma = getPrismaClient();
+export class PostgresHolidayRepository implements IHolidayRepository {
   private cache: RedisCache | null = null;
   private cacheEnabled: boolean;
 
@@ -28,6 +27,19 @@ export class PrismaHolidayRepository implements IHolidayRepository {
     await this.cache.set(key, value, ttl);
   }
 
+  private mapRowToHoliday(row: any, year?: number): Holiday {
+    return new Holiday({
+      month: row.month,
+      day: row.day,
+      nameKh: row.name_kh,
+      nameEn: row.name_en,
+      type: row.type,
+      isPublicHoliday: row.is_public_holiday,
+      description: row.description || undefined,
+      year: year || row.year,
+    });
+  }
+
   async findAll(year: number): Promise<Holiday[]> {
     const cacheKey = this.getCacheKey('all', year);
     const cached = await this.getCached<Holiday[]>(cacheKey);
@@ -37,62 +49,14 @@ export class PrismaHolidayRepository implements IHolidayRepository {
     }
 
     try {
-      // Get fixed holidays
-      const fixedHolidays = await this.prisma.holiday.findMany({
-        where: {
-          OR: [
-            { isRecurring: true },
-            {
-              AND: [
-                { startYear: { lte: year } },
-                {
-                  OR: [
-                    { endYear: null },
-                    { endYear: { gte: year } }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        orderBy: [{ month: 'asc' }, { day: 'asc' }],
-      });
+      const result = await pool.query(
+        `SELECT * FROM holidays 
+         WHERE year IS NULL OR year = $1
+         ORDER BY month ASC, day ASC`,
+        [year]
+      );
 
-      // Get calculated lunar holidays for the year
-      const lunarDates = await this.prisma.calculatedLunarDate.findMany({
-        where: { year },
-        include: { lunarHoliday: true },
-      });
-
-      const holidays: Holiday[] = [
-        ...fixedHolidays.map((h) => new Holiday({
-          month: h.month,
-          day: h.day,
-          nameKh: h.nameKh,
-          nameEn: h.nameEn,
-          type: h.type,
-          isPublicHoliday: h.isPublicHoliday,
-          description: h.description || undefined,
-          year,
-        })),
-        ...lunarDates.map((ld) => new Holiday({
-          month: ld.month,
-          day: ld.day,
-          nameKh: ld.lunarHoliday.nameKh,
-          nameEn: ld.lunarHoliday.nameEn,
-          type: ld.lunarHoliday.type,
-          isPublicHoliday: ld.lunarHoliday.isPublicHoliday,
-          description: ld.lunarHoliday.description || undefined,
-          year,
-        })),
-      ];
-
-      // Sort by date
-      holidays.sort((a, b) => {
-        if (a.month !== b.month) return a.month - b.month;
-        return a.day - b.day;
-      });
-
+      const holidays = result.rows.map((row) => this.mapRowToHoliday(row, year));
       await this.setCached(cacheKey, holidays);
       return holidays;
     } catch (error) {
@@ -109,57 +73,14 @@ export class PrismaHolidayRepository implements IHolidayRepository {
     }
 
     try {
-      // Find fixed holidays
-      const fixedHolidays = await this.prisma.holiday.findMany({
-        where: {
-          month,
-          day,
-          OR: [
-            { isRecurring: true },
-            {
-              AND: [
-                { startYear: { lte: year } },
-                {
-                  OR: [
-                    { endYear: null },
-                    { endYear: { gte: year } }
-                  ]
-                }
-              ]
-            }
-          ],
-        },
-      });
+      const result = await pool.query(
+        `SELECT * FROM holidays 
+         WHERE month = $1 AND day = $2 
+         AND (year IS NULL OR year = $3)`,
+        [month, day, year]
+      );
 
-      // Find lunar holidays for this date
-      const lunarDates = await this.prisma.calculatedLunarDate.findMany({
-        where: { year, month, day },
-        include: { lunarHoliday: true },
-      });
-
-      const holidays: Holiday[] = [
-        ...fixedHolidays.map((h) => new Holiday({
-          month: h.month,
-          day: h.day,
-          nameKh: h.nameKh,
-          nameEn: h.nameEn,
-          type: h.type,
-          isPublicHoliday: h.isPublicHoliday,
-          description: h.description || undefined,
-          year,
-        })),
-        ...lunarDates.map((ld) => new Holiday({
-          month: ld.month,
-          day: ld.day,
-          nameKh: ld.lunarHoliday.nameKh,
-          nameEn: ld.lunarHoliday.nameEn,
-          type: ld.lunarHoliday.type,
-          isPublicHoliday: ld.lunarHoliday.isPublicHoliday,
-          description: ld.lunarHoliday.description || undefined,
-          year,
-        })),
-      ];
-
+      const holidays = result.rows.map((row) => this.mapRowToHoliday(row, year));
       await this.setCached(cacheKey, holidays);
       return holidays;
     } catch (error) {
@@ -176,58 +97,15 @@ export class PrismaHolidayRepository implements IHolidayRepository {
     }
 
     try {
-      const fixedHolidays = await this.prisma.holiday.findMany({
-        where: {
-          month,
-          OR: [
-            { isRecurring: true },
-            {
-              AND: [
-                { startYear: { lte: year } },
-                {
-                  OR: [
-                    { endYear: null },
-                    { endYear: { gte: year } }
-                  ]
-                }
-              ]
-            }
-          ],
-        },
-        orderBy: { day: 'asc' },
-      });
+      const result = await pool.query(
+        `SELECT * FROM holidays 
+         WHERE month = $1 
+         AND (year IS NULL OR year = $2)
+         ORDER BY day ASC`,
+        [month, year]
+      );
 
-      const lunarDates = await this.prisma.calculatedLunarDate.findMany({
-        where: { year, month },
-        include: { lunarHoliday: true },
-        orderBy: { day: 'asc' },
-      });
-
-      const holidays: Holiday[] = [
-        ...fixedHolidays.map((h) => new Holiday({
-          month: h.month,
-          day: h.day,
-          nameKh: h.nameKh,
-          nameEn: h.nameEn,
-          type: h.type,
-          isPublicHoliday: h.isPublicHoliday,
-          description: h.description || undefined,
-          year,
-        })),
-        ...lunarDates.map((ld) => new Holiday({
-          month: ld.month,
-          day: ld.day,
-          nameKh: ld.lunarHoliday.nameKh,
-          nameEn: ld.lunarHoliday.nameEn,
-          type: ld.lunarHoliday.type,
-          isPublicHoliday: ld.lunarHoliday.isPublicHoliday,
-          description: ld.lunarHoliday.description || undefined,
-          year,
-        })),
-      ];
-
-      holidays.sort((a, b) => a.day - b.day);
-
+      const holidays = result.rows.map((row) => this.mapRowToHoliday(row, year));
       await this.setCached(cacheKey, holidays);
       return holidays;
     } catch (error) {
@@ -306,11 +184,17 @@ export class PrismaHolidayRepository implements IHolidayRepository {
     }
 
     try {
-      const allHolidays = await this.findAll(year);
-      const publicHolidays = allHolidays.filter((h) => h.isPublicHoliday);
-      
-      await this.setCached(cacheKey, publicHolidays);
-      return publicHolidays;
+      const result = await pool.query(
+        `SELECT * FROM holidays 
+         WHERE is_public_holiday = true
+         AND (year IS NULL OR year = $1)
+         ORDER BY month ASC, day ASC`,
+        [year]
+      );
+
+      const holidays = result.rows.map((row) => this.mapRowToHoliday(row, year));
+      await this.setCached(cacheKey, holidays);
+      return holidays;
     } catch (error) {
       logger.error('Error finding public holidays:', error);
       throw new Error('Failed to fetch public holidays');
@@ -325,13 +209,17 @@ export class PrismaHolidayRepository implements IHolidayRepository {
     }
 
     try {
-      const allHolidays = await this.findAll(year);
-      const religiousHolidays = allHolidays.filter(
-        (h) => h.type === 'religious' || h.type === 'holy'
+      const result = await pool.query(
+        `SELECT * FROM holidays 
+         WHERE type IN ('religious', 'holy')
+         AND (year IS NULL OR year = $1)
+         ORDER BY month ASC, day ASC`,
+        [year]
       );
-      
-      await this.setCached(cacheKey, religiousHolidays);
-      return religiousHolidays;
+
+      const holidays = result.rows.map((row) => this.mapRowToHoliday(row, year));
+      await this.setCached(cacheKey, holidays);
+      return holidays;
     } catch (error) {
       logger.error('Error finding religious holidays:', error);
       throw new Error('Failed to fetch religious holidays');

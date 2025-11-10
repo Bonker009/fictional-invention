@@ -13,7 +13,7 @@ import { schema } from './graphql/schema';
 import { createResolvers } from './graphql/resolvers';
 import { logger } from './logging/logger';
 import { DIContainer } from '../di/container';
-import { getPrismaClient } from './database/prisma';
+import { pool } from './database/pool';
 
 export async function createApp(): Promise<Express> {
   const app = express();
@@ -72,7 +72,7 @@ export async function createApp(): Promise<Express> {
       version: '2.0.0',
       description: 'National API for Cambodia holidays, holy days, and Khmer calendar',
       architecture: 'Clean Architecture with TypeScript',
-      database: 'PostgreSQL with Prisma ORM',
+      database: 'PostgreSQL with node-postgres',
       cache: 'Redis',
       baseUrl: `${req.protocol}://${req.get('host')}`,
       documentation: {
@@ -88,7 +88,7 @@ export async function createApp(): Promise<Express> {
       },
       features: [
         'TypeScript with strict type checking',
-        'PostgreSQL database with Prisma ORM',
+        'PostgreSQL database with node-postgres',
         'Redis caching for performance',
         'RESTful API with versioning (v1)',
         'GraphQL alternative endpoint',
@@ -111,7 +111,7 @@ export async function createApp(): Promise<Express> {
   app.get('/api/v1/health', async (_req: Request, res: Response) => {
     try {
       // Check database connection
-      await getPrismaClient().$queryRaw`SELECT 1`;
+      await pool.query('SELECT 1');
       const dbStatus = 'healthy';
 
       // Check Redis if enabled

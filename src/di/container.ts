@@ -1,4 +1,4 @@
-import { PrismaHolidayRepository } from '../infrastructure/repositories/PrismaHolidayRepository';
+import { PostgresHolidayRepository } from '../infrastructure/repositories/PostgresHolidayRepository';
 import { GetCurrentDateUseCase } from '../application/use-cases/GetCurrentDateUseCase';
 import { ConvertDateUseCase } from '../application/use-cases/ConvertDateUseCase';
 import { GetHolidaysUseCase } from '../application/use-cases/GetHolidaysUseCase';
@@ -6,11 +6,12 @@ import { CheckHolidayUseCase } from '../application/use-cases/CheckHolidayUseCas
 import { CalendarController } from '../presentation/controllers/CalendarController';
 import { HolidayController } from '../presentation/controllers/HolidayController';
 import { getRedisCache, RedisCache } from '../infrastructure/cache/RedisCache';
+import { testConnection, closePool } from '../infrastructure/database/pool';
 import { logger } from '../infrastructure/logging/logger';
 
 export class DIContainer {
   private cache: RedisCache | null = null;
-  private holidayRepository: PrismaHolidayRepository;
+  private holidayRepository: PostgresHolidayRepository;
   private getCurrentDateUseCase: GetCurrentDateUseCase;
   private convertDateUseCase: ConvertDateUseCase;
   private getHolidaysUseCase: GetHolidaysUseCase;
@@ -28,7 +29,7 @@ export class DIContainer {
     }
 
     // Initialize repository with cache
-    this.holidayRepository = new PrismaHolidayRepository(this.cache || undefined);
+    this.holidayRepository = new PostgresHolidayRepository(this.cache || undefined);
 
     // Initialize use cases
     this.getCurrentDateUseCase = new GetCurrentDateUseCase(this.holidayRepository);
@@ -48,12 +49,23 @@ export class DIContainer {
   }
 
   async initialize(): Promise<void> {
+    // Test database connection
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      throw new Error('Failed to connect to database');
+    }
+    
+    // Initialize cache if enabled
     if (this.cache) {
       await this.cache.connect();
     }
   }
 
   async cleanup(): Promise<void> {
+    // Close database pool
+    await closePool();
+    
+    // Disconnect cache
     if (this.cache) {
       await this.cache.disconnect();
     }
