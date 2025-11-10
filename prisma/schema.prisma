@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Holiday {
+  id              String   @id @default(uuid())
+  month           Int
+  day             Int
+  nameKh          String
+  nameEn          String
+  type            HolidayType
+  isPublicHoliday Boolean  @default(false)
+  description     String?
+  isRecurring     Boolean  @default(true)
+  startYear       Int?     // For non-recurring or year-specific holidays
+  endYear         Int?     // For holidays that end in a specific year
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([month, day])
+  @@index([type])
+  @@index([isPublicHoliday])
+  @@map("holidays")
+}
+
+model LunarHoliday {
+  id              String   @id @default(uuid())
+  nameKh          String
+  nameEn          String
+  lunarMonth      Int      // Lunar calendar month (1-12)
+  lunarDay        Int      // Lunar calendar day (1-30)
+  type            HolidayType
+  isPublicHoliday Boolean  @default(false)
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Calculated dates for specific years
+  calculatedDates CalculatedLunarDate[]
+
+  @@index([lunarMonth, lunarDay])
+  @@map("lunar_holidays")
+}
+
+model CalculatedLunarDate {
+  id            String       @id @default(uuid())
+  lunarHolidayId String
+  year          Int
+  month         Int
+  day           Int
+  gregorianDate DateTime
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  lunarHoliday  LunarHoliday @relation(fields: [lunarHolidayId], references: [id], onDelete: Cascade)
+
+  @@unique([lunarHolidayId, year])
+  @@index([year])
+  @@index([month, day])
+  @@map("calculated_lunar_dates")
+}
+
+enum HolidayType {
+  public
+  religious
+  holy
+}
+

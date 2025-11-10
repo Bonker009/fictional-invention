@@ -1,0 +1,232 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Khmer Calendar API",
+    "version": "2.0.0",
+    "description": "API for Khmer Calendar conversions, Buddhist Era dates, and accurate Lunar Calendar calculations"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3002",
+      "description": "Test Server"
+    }
+  ],
+  "tags": [
+    { "name": "Calendar", "description": "Calendar conversion endpoints" },
+    { "name": "Lunar", "description": "Lunar calendar endpoints" },
+    { "name": "Reference", "description": "Reference data endpoints" }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["Info"],
+        "summary": "API Information",
+        "description": "Returns API welcome message and available endpoints",
+        "responses": {
+          "200": {
+            "description": "API information"
+          }
+        }
+      }
+    },
+    "/current": {
+      "get": {
+        "tags": ["Calendar"],
+        "summary": "Get current date",
+        "description": "Returns current date in Gregorian, Buddhist Era, and Lunar Calendar formats with full Khmer formatting",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "gregorian": {
+                      "year": 2024,
+                      "month": 11,
+                      "day": 9,
+                      "dayName": "ថ្ងៃសៅរ៍"
+                    },
+                    "buddhistEra": {
+                      "year": 2568,
+                      "month": 11,
+                      "day": 9,
+                      "monthName": "វិច្ឆិកា",
+                      "dayName": "ថ្ងៃសៅរ៍"
+                    },
+                    "lunarDate": {
+                      "code": "0706256914R04",
+                      "fullDescription": "ថ្ងៃ ៤រោច ខែកក្ដិក ព.ស ២៥៦៩ ឆ្នាំ ម្សាញ់ សប្ត​ស័ក",
+                      "sak": "07",
+                      "sakKh": "សប្ត​ស័ក",
+                      "animalYear": "06",
+                      "animalYearKh": "ម្សាញ់",
+                      "buddhistEra": 2569,
+                      "lunarMonth": "14",
+                      "lunarMonthKh": "កក្ដិក",
+                      "moonPhase": "R",
+                      "moonPhaseKh": "រោច",
+                      "lunarDay": 4,
+                      "isHolyDay": false
+                    },
+                    "formatted": {
+                      "khmer": "ថ្ងៃសៅរ៍ ថ្ងៃទី 9 វិច្ឆិកា ឆ្នាំ 2568",
+                      "english": "Saturday 9 វិច្ឆិកា 2568 BE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convert": {
+      "get": {
+        "tags": ["Calendar"],
+        "summary": "Convert date",
+        "description": "Convert a Gregorian date to Buddhist Era and Lunar Calendar with full Khmer formatting",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Date in YYYY-MM-DD format",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2024-04-15"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "gregorian": {
+                      "year": 2024,
+                      "month": 4,
+                      "day": 15,
+                      "dayName": "ថ្ងៃច័ន្ទ"
+                    },
+                    "buddhistEra": {
+                      "year": 2567,
+                      "month": 4,
+                      "day": 15,
+                      "monthName": "មេសា",
+                      "dayName": "ថ្ងៃច័ន្ទ"
+                    },
+                    "lunarDate": {
+                      "code": "0605256705K07",
+                      "fullDescription": "ថ្ងៃ ៧កើត ខែចេត្រ ព.ស ២៥៦៧ ឆ្នាំ រោង ឆ​ស័ក"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lunar": {
+      "get": {
+        "tags": ["Lunar"],
+        "summary": "Get lunar calendar info",
+        "description": "Get detailed lunar calendar information for a specific date. Returns the lunar calendar code and full Khmer description. Verified against the .NET implementation.",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Date in YYYY-MM-DD format",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2017-12-10"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns lunar calendar code and full Khmer description",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "code": "0910256101R07",
+                    "fullDescription": "ថ្ងៃ ៧រោច ខែមិគសិរ ព.ស ២៥៦១ ឆ្នាំ រកា នព្វ​ស័ក",
+                    "sak": "09",
+                    "sakKh": "នព្វ​ស័ក",
+                    "animalYear": "10",
+                    "animalYearKh": "រកា",
+                    "buddhistEra": 2561,
+                    "lunarMonth": "01",
+                    "lunarMonthKh": "មិគសិរ",
+                    "moonPhase": "R",
+                    "moonPhaseKh": "រោច",
+                    "lunarDay": 7,
+                    "lunarDayKh": "៧",
+                    "isHolyDay": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/months": {
+      "get": {
+        "tags": ["Reference"],
+        "summary": "Get Khmer month names",
+        "description": "Returns all Khmer month names in both Khmer and English",
+        "responses": {
+          "200": {
+            "description": "List of all 12 months",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    { "index": 1, "khmer": "មករា", "english": "January" },
+                    { "index": 2, "khmer": "កុម្ភៈ", "english": "February" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/days": {
+      "get": {
+        "tags": ["Reference"],
+        "summary": "Get Khmer day names",
+        "description": "Returns all Khmer day names (Sunday through Saturday)",
+        "responses": {
+          "200": {
+            "description": "List of all 7 days",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    { "index": 0, "khmer": "ថ្ងៃអាទិត្យ", "english": "Sunday" },
+                    { "index": 1, "khmer": "ថ្ងៃច័ន្ទ", "english": "Monday" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

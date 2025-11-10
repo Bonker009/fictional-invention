@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: khmer-calendar-postgres-dev
+    environment:
+      POSTGRES_USER: khmer_user
+      POSTGRES_PASSWORD: khmer_password
+      POSTGRES_DB: khmer_calendar
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U khmer_user -d khmer_calendar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - khmer-network-dev
+
+  redis:
+    image: redis:7-alpine
+    container_name: khmer-calendar-redis-dev
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - khmer-network-dev
+
+  khmer-calendar-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: khmer-calendar-api-dev
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - DATABASE_URL=postgresql://khmer_user:khmer_password@postgres:5432/khmer_calendar?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_TTL=300
+      - ENABLE_CACHE=true
+      - API_VERSION=v1
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: npm run dev
+    networks:
+      - khmer-network-dev
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+
+networks:
+  khmer-network-dev:
+    driver: bridge
