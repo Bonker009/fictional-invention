@@ -32,12 +32,14 @@ export async function createApp(): Promise<Express> {
   }));
 
   // CORS configuration
+  const corsOrigin = process.env.CORS_ORIGIN;
   const corsOptions = {
-    origin: process.env.CORS_ORIGIN || '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
+    origin: corsOrigin ? corsOrigin.split(',').map(o => o.trim()) : true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    credentials: corsOrigin ? true : false,
     maxAge: 86400, // 24 hours
+    optionsSuccessStatus: 200,
   };
   app.use(cors(corsOptions));
 

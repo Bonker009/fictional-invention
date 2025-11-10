@@ -58,6 +58,7 @@ services:
       - CACHE_TTL=3600
       - ENABLE_CACHE=true
       - API_VERSION=v1
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:8080
     depends_on:
       postgres:
         condition: service_healthy
