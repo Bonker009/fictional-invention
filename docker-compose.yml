@@ -59,6 +59,7 @@ services:
       - ENABLE_CACHE=true
       - API_VERSION=v1
       - CORS_ORIGIN=https://lunar-calender.seyha-hub.it.com,http://lunar-calender.seyha-hub.it.com,http://localhost:3000,http://localhost:3001,http://localhost:8080
+      - API_BASE_URL=https://lunar-calender.seyha-hub.it.com
     depends_on:
       postgres:
         condition: service_healthy

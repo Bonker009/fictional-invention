@@ -176,6 +176,63 @@ export const createHolidayRoutes = (controller: HolidayController): Router => {
    */
   router.get('/bulk', controller.getBulkHolidays);
 
+  /**
+   * @swagger
+   * /api/v1/holidays:
+   *   post:
+   *     summary: Create a new holiday
+   *     tags: [Holidays]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - month
+   *               - day
+   *               - nameKh
+   *               - nameEn
+   *               - type
+   *               - isPublicHoliday
+   *             properties:
+   *               month:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 12
+   *                 description: Month (1-12)
+   *               day:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 31
+   *                 description: Day of month (1-31)
+   *               nameKh:
+   *                 type: string
+   *                 description: Holiday name in Khmer
+   *               nameEn:
+   *                 type: string
+   *                 description: Holiday name in English
+   *               type:
+   *                 type: string
+   *                 enum: [public, religious, holy]
+   *                 description: Type of holiday
+   *               isPublicHoliday:
+   *                 type: boolean
+   *                 description: Whether it's a public holiday
+   *               description:
+   *                 type: string
+   *                 description: Optional description of the holiday
+   *               year:
+   *                 type: integer
+   *                 description: Optional year (if null, applies to all years)
+   *     responses:
+   *       201:
+   *         description: Holiday created successfully
+   *       400:
+   *         description: Validation error
+   */
+  router.post('/', controller.createHoliday);
+
   return router;
 };
 

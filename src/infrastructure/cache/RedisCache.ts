@@ -8,10 +8,20 @@ export class RedisCache {
 
   constructor(ttl: number = 3600) {
     this.defaultTTL = ttl;
+    const redisHost = process.env.REDIS_HOST || 'localhost';
+    const redisPort = parseInt(process.env.REDIS_PORT || '6379');
+    
+    // Warn if using localhost in production
+    if (process.env.NODE_ENV === 'production' && redisHost === 'localhost') {
+      logger.warn('⚠️  WARNING: Using localhost for Redis in production! Set REDIS_HOST environment variable.');
+    }
+    
+    logger.info(`Redis configuration: ${redisHost}:${redisPort}`);
+    
     this.client = createClient({
       socket: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: redisHost,
+        port: redisPort,
       },
       password: process.env.REDIS_PASSWORD || undefined,
       database: parseInt(process.env.REDIS_DB || '0'),

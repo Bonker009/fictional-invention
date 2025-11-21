@@ -1,4 +1,5 @@
 import { Holiday } from '../entities/Holiday';
+import { HolidayData } from '../entities/Holiday';
 
 export interface IHolidayRepository {
   findAll(year: number): Promise<Holiday[]>;
@@ -8,5 +9,6 @@ export interface IHolidayRepository {
   findUpcoming(limit: number, fromDate?: Date): Promise<Holiday[]>;
   findPublicHolidays(year: number): Promise<Holiday[]>;
   findReligiousHolidays(year: number): Promise<Holiday[]>;
+  create(data: HolidayData): Promise<Holiday>;
 }
 

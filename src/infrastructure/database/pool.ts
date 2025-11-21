@@ -1,12 +1,25 @@
 import { Pool, PoolConfig } from 'pg';
 import { logger } from '../logging/logger';
 
+const dbHost = process.env.DB_HOST || 'localhost';
+const dbPort = parseInt(process.env.DB_PORT || '5432');
+const dbName = process.env.DB_NAME || 'khmer_calendar';
+const dbUser = process.env.DB_USER || 'khmer_user';
+const dbPassword = process.env.DB_PASSWORD || 'khmer_password';
+
+// Warn if using localhost in production
+if (process.env.NODE_ENV === 'production' && dbHost === 'localhost') {
+  logger.warn('⚠️  WARNING: Using localhost for database in production! Set DB_HOST environment variable.');
+}
+
+logger.info(`Database configuration: ${dbUser}@${dbHost}:${dbPort}/${dbName}`);
+
 const poolConfig: PoolConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'khmer_calendar',
-  user: process.env.DB_USER || 'khmer_user',
-  password: process.env.DB_PASSWORD || 'khmer_password',
+  host: dbHost,
+  port: dbPort,
+  database: dbName,
+  user: dbUser,
+  password: dbPassword,
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established

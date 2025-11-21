@@ -1,5 +1,5 @@
 import { IHolidayRepository } from '../../domain/interfaces/IHolidayRepository';
-import { Holiday } from '../../domain/entities/Holiday';
+import { Holiday, HolidayData } from '../../domain/entities/Holiday';
 import { pool } from '../database/pool';
 import { RedisCache } from '../cache/RedisCache';
 import { logger } from '../logging/logger';
@@ -25,6 +25,34 @@ export class PostgresHolidayRepository implements IHolidayRepository {
   private async setCached<T>(key: string, value: T, ttl?: number): Promise<void> {
     if (!this.cacheEnabled || !this.cache) return;
     await this.cache.set(key, value, ttl);
+  }
+
+  private async invalidateCache(year?: number): Promise<void> {
+    if (!this.cacheEnabled || !this.cache) return;
+    
+    try {
+      // Invalidate all cache keys related to holidays
+      // If year is provided, invalidate that year's cache
+      // Otherwise, invalidate all holiday caches
+      if (year) {
+        // Match keys like: holiday:all:2024, holiday:date:2024:1:15, holiday:month:2024:1, etc.
+        const patterns = [
+          `holiday:*:${year}`,      // Matches holiday:all:2024, holiday:public:2024, etc.
+          `holiday:*:${year}:*`,    // Matches holiday:date:2024:1:15, holiday:month:2024:1, etc.
+        ];
+        for (const pattern of patterns) {
+          await this.cache.delPattern(pattern);
+        }
+        logger.debug(`Cache invalidated for year ${year}`);
+      } else {
+        // Invalidate all holiday caches
+        await this.cache.delPattern('holiday:*');
+        logger.debug('All holiday cache invalidated');
+      }
+    } catch (error) {
+      logger.warn('Error invalidating cache:', error);
+      // Don't throw - cache invalidation failure shouldn't break the operation
+    }
   }
 
   private mapRowToHoliday(row: any, year?: number): Holiday {
@@ -223,6 +251,42 @@ export class PostgresHolidayRepository implements IHolidayRepository {
     } catch (error) {
       logger.error('Error finding religious holidays:', error);
       throw new Error('Failed to fetch religious holidays');
+    }
+  }
+
+  async create(data: HolidayData): Promise<Holiday> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO holidays (month, day, name_kh, name_en, type, is_public_holiday, description, year)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [
+          data.month,
+          data.day,
+          data.nameKh,
+          data.nameEn,
+          data.type,
+          data.isPublicHoliday,
+          data.description || null,
+          data.year || null,
+        ]
+      );
+
+      const holiday = this.mapRowToHoliday(result.rows[0], data.year);
+      
+      // Invalidate cache for the affected year(s)
+      if (data.year) {
+        await this.invalidateCache(data.year);
+      } else {
+        // If no year specified, invalidate all caches
+        await this.invalidateCache();
+      }
+
+      logger.info(`Created holiday: ${data.nameEn} (${data.month}/${data.day})`);
+      return holiday;
+    } catch (error) {
+      logger.error('Error creating holiday:', error);
+      throw new Error('Failed to create holiday');
     }
   }
 }

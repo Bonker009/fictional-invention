@@ -3,6 +3,7 @@ import { GetCurrentDateUseCase } from '../application/use-cases/GetCurrentDateUs
 import { ConvertDateUseCase } from '../application/use-cases/ConvertDateUseCase';
 import { GetHolidaysUseCase } from '../application/use-cases/GetHolidaysUseCase';
 import { CheckHolidayUseCase } from '../application/use-cases/CheckHolidayUseCase';
+import { CreateHolidayUseCase } from '../application/use-cases/CreateHolidayUseCase';
 import { CalendarController } from '../presentation/controllers/CalendarController';
 import { HolidayController } from '../presentation/controllers/HolidayController';
 import { getRedisCache, RedisCache } from '../infrastructure/cache/RedisCache';
@@ -16,6 +17,7 @@ export class DIContainer {
   private convertDateUseCase: ConvertDateUseCase;
   private getHolidaysUseCase: GetHolidaysUseCase;
   private checkHolidayUseCase: CheckHolidayUseCase;
+  private createHolidayUseCase: CreateHolidayUseCase;
   public calendarController: CalendarController;
   public holidayController: HolidayController;
 
@@ -36,6 +38,7 @@ export class DIContainer {
     this.convertDateUseCase = new ConvertDateUseCase(this.holidayRepository);
     this.getHolidaysUseCase = new GetHolidaysUseCase(this.holidayRepository);
     this.checkHolidayUseCase = new CheckHolidayUseCase(this.holidayRepository);
+    this.createHolidayUseCase = new CreateHolidayUseCase(this.holidayRepository);
 
     // Initialize controllers
     this.calendarController = new CalendarController(
@@ -44,7 +47,8 @@ export class DIContainer {
     );
     this.holidayController = new HolidayController(
       this.getHolidaysUseCase,
-      this.checkHolidayUseCase
+      this.checkHolidayUseCase,
+      this.createHolidayUseCase
     );
   }
 
@@ -79,6 +83,7 @@ export class DIContainer {
       convertDateUseCase: this.convertDateUseCase,
       getHolidaysUseCase: this.getHolidaysUseCase,
       checkHolidayUseCase: this.checkHolidayUseCase,
+      createHolidayUseCase: this.createHolidayUseCase,
     };
   }
 }

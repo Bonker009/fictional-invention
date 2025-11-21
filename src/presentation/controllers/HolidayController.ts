@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { GetHolidaysUseCase } from '../../application/use-cases/GetHolidaysUseCase';
 import { CheckHolidayUseCase } from '../../application/use-cases/CheckHolidayUseCase';
+import { CreateHolidayUseCase } from '../../application/use-cases/CreateHolidayUseCase';
 import { logger } from '../../infrastructure/logging/logger';
 
 export class HolidayController {
   constructor(
     private getHolidaysUseCase: GetHolidaysUseCase,
-    private checkHolidayUseCase: CheckHolidayUseCase
+    private checkHolidayUseCase: CheckHolidayUseCase,
+    private createHolidayUseCase: CreateHolidayUseCase
   ) {}
 
   getAllHolidays = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -181,6 +183,47 @@ export class HolidayController {
       });
     } catch (error) {
       logger.error('Error getting bulk holidays:', error);
+      next(error);
+    }
+  };
+
+  createHoliday = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { month, day, nameKh, nameEn, type, isPublicHoliday, description, year } = req.body;
+
+      logger.info(`Creating holiday: ${nameEn} (${month}/${day})`);
+      const holiday = await this.createHolidayUseCase.execute({
+        month,
+        day,
+        nameKh,
+        nameEn,
+        type,
+        isPublicHoliday,
+        description,
+        year,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Holiday created successfully',
+        data: holiday.toJSON(),
+      });
+    } catch (error: any) {
+      logger.error('Error creating holiday:', error);
+      
+      // Handle validation errors
+      if (error.message && (
+        error.message.includes('required') ||
+        error.message.includes('must be') ||
+        error.message.includes('Invalid')
+      )) {
+        res.status(400).json({
+          success: false,
+          error: error.message,
+        });
+        return;
+      }
+      
       next(error);
     }
   };
