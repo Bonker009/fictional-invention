@@ -68,7 +68,7 @@ prisma/
 
 ```bash
 # Clone the repository
-git clone [<repository-url>](https://github.com/Bonker009/fictional-invention.git)
+git clone https://github.com/Bonker009/fictional-invention.git
 cd khmer-calendar
 
 # Start all services (API, PostgreSQL, Redis)
